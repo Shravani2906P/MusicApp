@@ -16,30 +16,47 @@ export default function TrackCard({ track, onPress }) {
   const liked = isLiked(track.id);
 
   return (
-    <TouchableOpacity style={[styles.card, isActive && styles.activeCard]} onPress={onPress}>
-      <Image source={{ uri: track.cover }} style={styles.cover} />
-      <View style={styles.info}>
-        <Text style={[styles.title, isActive && styles.activeText]} numberOfLines={1}>
-          {track.title}
-        </Text>
-        <Text style={styles.artist} numberOfLines={1}>{track.artistName}</Text>
-      </View>
-      <View style={styles.right}>
-        {/* Favorite button */}
-        <TouchableOpacity
-          onPress={(e) => { e.stopPropagation(); toggle(track); }}
-          style={styles.heartBtn}
-        >
-          <Text style={[styles.heart, liked && styles.heartActive]}>
-            {liked ? '❤️' : '🤍'}
+    <View style={[styles.card, isActive && styles.activeCard]}>
+      {/* Main area — tap to play */}
+      <TouchableOpacity
+        style={styles.mainArea}
+        onPress={() => {
+          console.log('Track tapped:', track.title);
+          if (onPress) onPress();
+        }}
+        activeOpacity={0.7}
+      >
+        <Image source={{ uri: track.cover }} style={styles.cover} />
+        <View style={styles.info}>
+          <Text style={[styles.title, isActive && styles.activeText]} numberOfLines={1}>
+            {track.title}
           </Text>
+          <Text style={styles.artist} numberOfLines={1}>{track.artistName}</Text>
+          {track.noPreview && (
+            <Text style={styles.noPreview}>Preview unavailable</Text>
+          )}
+        </View>
+      </TouchableOpacity>
+
+      {/* Right side buttons */}
+      <View style={styles.right}>
+        <TouchableOpacity
+          style={styles.heartBtn}
+          onPress={() => {
+            console.log('Favorite tapped:', track.title);
+            toggle(track);
+          }}
+          activeOpacity={0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Text style={styles.heart}>{liked ? '❤️' : '🤍'}</Text>
         </TouchableOpacity>
         {isActive && (
           <Text style={styles.playingBadge}>{isPlaying ? '▶' : '⏸'}</Text>
         )}
         <Text style={styles.duration}>{formatDuration(track.duration)}</Text>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 }
 
@@ -51,22 +68,61 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#1E1E1E',
+    backgroundColor: '#121212',
   },
-  activeCard: { backgroundColor: '#1A2E1A' },
+  activeCard: {
+    backgroundColor: '#1A2E1A',
+  },
+  mainArea: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   cover: {
     width: 52,
     height: 52,
     borderRadius: 6,
     backgroundColor: '#333',
   },
-  info: { flex: 1, marginLeft: 12 },
-  title: { color: '#FFF', fontSize: 15, fontWeight: '600' },
-  activeText: { color: '#1DB954' },
-  artist: { color: '#888', fontSize: 13, marginTop: 3 },
-  right: { alignItems: 'flex-end', gap: 4 },
-  heartBtn: { padding: 4 },
-  heart: { fontSize: 16 },
-  heartActive: {},
-  playingBadge: { color: '#1DB954', fontSize: 12 },
-  duration: { color: '#555', fontSize: 12 },
+  info: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  title: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  activeText: {
+    color: '#1DB954',
+  },
+  artist: {
+    color: '#888',
+    fontSize: 13,
+    marginTop: 3,
+  },
+  noPreview: {
+    color: '#FF4C4C',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  right: {
+    alignItems: 'flex-end',
+    gap: 4,
+    marginLeft: 8,
+  },
+  heartBtn: {
+    padding: 4,
+  },
+  heart: {
+    fontSize: 16,
+  },
+  playingBadge: {
+    color: '#1DB954',
+    fontSize: 12,
+  },
+  duration: {
+    color: '#555',
+    fontSize: 12,
+  },
 });

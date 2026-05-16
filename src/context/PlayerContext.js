@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
 import { Audio } from 'expo-av';
-import { TRACKS } from '../data/mockData';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PlayerContext = createContext();
 
@@ -11,13 +11,21 @@ export function PlayerProvider({ children, lastTrack }) {
   const [duration, setDuration] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const soundRef = useRef(null);
+  const trackListRef = useRef([]);
 
   useEffect(() => {
     if (lastTrack) setCurrentTrack(lastTrack);
   }, []);
 
-  const playTrack = async (track) => {
+  const playTrack = async (track, allTracks) => {
     try {
+      if (!track.url) {
+        alert('Preview not available for this track in your region.');
+        return;
+      }
+
+      if (allTracks) trackListRef.current = allTracks;
+
       setIsLoading(true);
 
       if (soundRef.current) {
@@ -28,6 +36,7 @@ export function PlayerProvider({ children, lastTrack }) {
 
       setCurrentTrack(track);
       setProgress(0);
+      setDuration(0);
 
       await Audio.setAudioModeAsync({
         playsInSilentModeIOS: true,
@@ -53,6 +62,7 @@ export function PlayerProvider({ children, lastTrack }) {
       );
 
       soundRef.current = sound;
+      await AsyncStorage.setItem('lastTrack', JSON.stringify(track));
       setIsLoading(false);
     } catch (e) {
       console.error('Playback error:', e);
@@ -75,16 +85,18 @@ export function PlayerProvider({ children, lastTrack }) {
   };
 
   const playNext = () => {
-    if (!currentTrack) return;
-    const idx = TRACKS.findIndex(t => t.id === currentTrack.id);
-    const next = TRACKS[(idx + 1) % TRACKS.length];
+    const list = trackListRef.current;
+    if (!currentTrack || list.length === 0) return;
+    const idx = list.findIndex(t => t.id === currentTrack.id);
+    const next = list[(idx + 1) % list.length];
     playTrack(next);
   };
 
   const playPrevious = () => {
-    if (!currentTrack) return;
-    const idx = TRACKS.findIndex(t => t.id === currentTrack.id);
-    const prev = TRACKS[(idx - 1 + TRACKS.length) % TRACKS.length];
+    const list = trackListRef.current;
+    if (!currentTrack || list.length === 0) return;
+    const idx = list.findIndex(t => t.id === currentTrack.id);
+    const prev = list[(idx - 1 + list.length) % list.length];
     playTrack(prev);
   };
 

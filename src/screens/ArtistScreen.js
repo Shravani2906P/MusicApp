@@ -3,10 +3,10 @@ import {
   View, Text, Image, FlatList, TouchableOpacity,
   StyleSheet, ActivityIndicator, Dimensions,
 } from 'react-native';
-import { ARTISTS, TRACKS } from '../data/mockData';
 import TrackCard from '../components/TrackCard';
 import MiniPlayer from '../components/MiniPlayer';
 import { usePlayer } from '../context/PlayerContext';
+import { getArtist, getArtistTracks } from '../services/deezerService';
 
 const { width } = Dimensions.get('window');
 
@@ -21,17 +21,21 @@ export default function ArtistScreen({ navigation, route }) {
     const load = async () => {
       try {
         setLoading(true);
-        await new Promise(res => setTimeout(res, 500));
-
         const incoming = route.params?.artist;
         if (!incoming) throw new Error('No artist provided.');
 
-        // Find full artist data from mock (in case only id/name was passed)
-        const full = ARTISTS.find(a => a.id === incoming.id) || incoming;
-        const artistTracks = TRACKS.filter(t => t.artistId === full.id);
-
-        setArtist(full);
-        setTracks(artistTracks);
+        if (incoming.deezerArtistId) {
+          const [artistData, artistTracks] = await Promise.all([
+            getArtist(incoming.deezerArtistId),
+            getArtistTracks(incoming.deezerArtistId),
+          ]);
+          setArtist(artistData);
+          setTracks(artistTracks);
+        } else {
+          // Fallback for artists without deezer ID
+          setArtist(incoming);
+          setTracks([]);
+        }
       } catch (e) {
         setError('Could not load artist. Please go back and try again.');
       } finally {
@@ -42,7 +46,7 @@ export default function ArtistScreen({ navigation, route }) {
   }, [route.params?.artist]);
 
   const handleTrackPress = (track) => {
-    playTrack(track);
+    playTrack(track, tracks);
     navigation.navigate('Player', { track });
   };
 
@@ -73,45 +77,36 @@ export default function ArtistScreen({ navigation, route }) {
         keyExtractor={item => item.id}
         ListHeaderComponent={() => (
           <View>
-            {/* Hero Image */}
             <View style={styles.heroContainer}>
-              <Image source={{ uri: artist.image }} style={styles.heroImage} />
-
-              {/* Back Button */}
-              <TouchableOpacity
-                style={styles.backBtn}
-                onPress={() => navigation.goBack()}
-              >
+              {artist?.image
+                ? <Image source={{ uri: artist.image }} style={styles.heroImage} />
+                : <View style={[styles.heroImage, styles.heroPlaceholder]}>
+                    <Text style={styles.heroInitial}>{artist?.name?.charAt(0)}</Text>
+                  </View>
+              }
+              <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
                 <Text style={styles.backText}>←</Text>
               </TouchableOpacity>
-
-              {/* Gradient overlay info */}
               <View style={styles.heroOverlay}>
-                <Text style={styles.artistName}>{artist.name}</Text>
-                <Text style={styles.genre}>{artist.genre}</Text>
-                <Text style={styles.followers}>{artist.followers} followers</Text>
+                <Text style={styles.artistName}>{artist?.name}</Text>
+                <Text style={styles.followers}>{artist?.followers} fans</Text>
               </View>
             </View>
 
-            {/* Bio */}
-            {artist.bio ? (
+            {artist?.bio ? (
               <View style={styles.bioContainer}>
                 <Text style={styles.bioTitle}>About</Text>
                 <Text style={styles.bioText}>{artist.bio}</Text>
               </View>
             ) : null}
 
-            {/* Tracks Header */}
             <Text style={styles.sectionTitle}>
-              Tracks {tracks.length > 0 ? `(${tracks.length})` : ''}
+              Top Tracks {tracks.length > 0 ? `(${tracks.length})` : ''}
             </Text>
           </View>
         )}
         renderItem={({ item }) => (
-          <TrackCard
-            track={item}
-            onPress={() => handleTrackPress(item)}
-          />
+          <TrackCard track={item} onPress={() => handleTrackPress(item)} />
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -120,7 +115,6 @@ export default function ArtistScreen({ navigation, route }) {
         }
         contentContainerStyle={{ paddingBottom: 140 }}
       />
-
       <MiniPlayer onPress={() => navigation.navigate('Player', { track: currentTrack })} />
     </View>
   );
@@ -128,62 +122,31 @@ export default function ArtistScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#121212' },
-  centered: {
-    flex: 1, backgroundColor: '#121212',
-    justifyContent: 'center', alignItems: 'center', padding: 24,
-  },
+  centered: { flex: 1, backgroundColor: '#121212', justifyContent: 'center', alignItems: 'center', padding: 24 },
   loadingText: { color: '#888', marginTop: 12, fontSize: 14 },
   errorText: { color: '#FF4C4C', fontSize: 15, textAlign: 'center', marginBottom: 16 },
   backLink: { color: '#1DB954', fontSize: 15 },
-
-  heroContainer: {
-    width,
-    height: 280,
-    position: 'relative',
-  },
-  heroImage: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#333',
-  },
+  heroContainer: { width, height: 280, position: 'relative' },
+  heroImage: { width: '100%', height: '100%', backgroundColor: '#333' },
+  heroPlaceholder: { justifyContent: 'center', alignItems: 'center', backgroundColor: '#1DB954' },
+  heroInitial: { fontSize: 80, fontWeight: 'bold', color: '#000' },
   backBtn: {
-    position: 'absolute',
-    top: 52,
-    left: 16,
+    position: 'absolute', top: 52, left: 16,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 40, height: 40, borderRadius: 20,
+    justifyContent: 'center', alignItems: 'center',
   },
   backText: { color: '#FFF', fontSize: 20 },
   heroOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    padding: 16,
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)', padding: 16,
   },
   artistName: { color: '#FFF', fontSize: 26, fontWeight: 'bold' },
-  genre: { color: '#1DB954', fontSize: 14, marginTop: 2 },
   followers: { color: '#AAA', fontSize: 13, marginTop: 4 },
-
-  bioContainer: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1E1E1E',
-  },
+  bioContainer: { padding: 16, borderBottomWidth: 1, borderBottomColor: '#1E1E1E' },
   bioTitle: { color: '#FFF', fontSize: 16, fontWeight: 'bold', marginBottom: 6 },
   bioText: { color: '#AAA', fontSize: 14, lineHeight: 20 },
-
-  sectionTitle: {
-    color: '#FFF', fontSize: 18,
-    fontWeight: 'bold',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
+  sectionTitle: { color: '#FFF', fontSize: 18, fontWeight: 'bold', paddingHorizontal: 16, paddingVertical: 12 },
   emptyContainer: { padding: 32, alignItems: 'center' },
   emptyText: { color: '#555', fontSize: 15 },
 });
