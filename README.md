@@ -1,6 +1,6 @@
 # 🎵 Musify — Mini Music App
 
-A React Native music app built with Expo for the App Dev Intern technical assessment.
+A React Native music app built with Expo.
 
 ---
 
@@ -27,7 +27,7 @@ A React Native music app built with Expo for the App Dev Intern technical assess
 
 ### Run the app
 ```bash
-git clone https://github.com/YOUR_USERNAME/MusicApp.git
+git clone https://github.com/Shravani2906P/MusicApp.git
 cd MusicApp
 npm install
 npx expo start
@@ -42,11 +42,16 @@ Password: password123
 
 ## 🏗️ Project Structure
 src/
-├── screens/          # One file per screen (Login, Home, Player, Artist, Favorites)
+├── screens/          # One file per screen (Login, Home, Player, Artist, Favorites) 
+
 ├── components/       # Reusable UI (TrackCard, MiniPlayer)
+
 ├── context/          # Global state (PlayerContext, FavoritesContext)
+
 ├── data/             # Mock tracks and artists (mockData.js)
+
 ├── navigation/       # Stack + Tab navigator config
+
 └── services/         # Storage logic (favoritesService.js)
 
 ---
@@ -60,7 +65,7 @@ control, which is acceptable for this scope.
 
 ### Context API over Redux
 The app has two shared states (player + favorites). Context API is
-sufficient here — Redux would be over-engineering for this scale.
+sufficient here — Redux would be over engineering for this scale.
 
 ### Mock JSON over real API
 Keeps the focus on app architecture and UI quality. The data layer is
@@ -90,7 +95,6 @@ one track ever plays at a time.
 ---
 
 ## 🎥 Video Walkthrough
-[Link to video]
 
 ---
 
