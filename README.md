@@ -81,6 +81,8 @@ The sound object lives in a ref inside PlayerContext so it persists
 across renders without causing re-renders itself. This ensures only
 one track ever plays at a time.
 
+
+I used royalty-free placeholder audio to demonstrate playback — in production this would integrate with a licensed music API like Deezer.
 ---
 
 ## 📦 Libraries Used
